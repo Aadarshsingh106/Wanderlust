@@ -18,6 +18,26 @@ router.route("/")
     wrapAsync(listingController.createListing)
 ); 
 
+//search route
+
+router.get("/search", wrapAsync(async (req, res) => {
+    const query = req.query.q;
+    if (!query) {
+        req.flash("error", "Please enter something to search!");
+        return res.redirect("/listings");
+    }
+
+    const allListings = await Listing.find({
+        $or: [
+            { title: new RegExp(query, "i") },
+            { location: new RegExp(query, "i") },
+            { country: new RegExp(query, "i") }
+        ]
+    });
+
+    res.render("listings/index.ejs", { allListings });
+}));
+
 
 //new Route
 router.get("/new", isLoggedIn,listingController.renderNewForm);
