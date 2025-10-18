@@ -18,6 +18,7 @@ const flash=require("connect-flash");
 const passport=require("passport");
 const LocalStrategy=require("passport-local");
 const User=require("./models/user.js");
+const helmet=require("helmet");
 
 const listingRouter = require("./routes/listing.js"); //this is copied by gpt
 const reviewRouter=require("./routes/review.js");
@@ -48,6 +49,20 @@ app.use(methodOverride("_method"));
 app.engine("ejs",ejsMate);
 app.use(express.static(path.join(__dirname,"/public")));
 
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// Force HTTPS in production
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] !== 'https') {
+    return res.redirect(`https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
 const store=MongoStore.create({
   mongoUrl:dbUrl,
   crypto:{
@@ -70,6 +85,8 @@ const sessionOptions={
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
   },
 
 };
@@ -102,14 +119,7 @@ app.use((req,res,next)=>{
   next();
 });
 
-// app.get("/demouser",async(req,res)=>{
-//   let fakeUser=new User({
-//     email:"adarsh@gamil.com",
-//     username:"delta-student"
-//   });
-//   let registeredUser = await User.register(fakeUser,"hellouser");
-//   res.send(registeredUser);
-// });
+
 
  app.use("/listings", listingRouter);
  app.use("/listings/:id/reviews",reviewRouter);
@@ -129,14 +139,13 @@ app.use((err,req,res,next)=>{
     // res.status(statusCode).send(message);
 });
 
-app.listen(8080,()=>{
-    console.log("server is listening to port 8080");
+const port = process.env.PORT || 8080;
+app.listen(port,()=>{
+    console.log(`server is listening to port ${port}`);
 });
 
 
 
-//npm  i  cookie-parser
-//npm  i  express-session
-//npm  i  connect-flash
-//db.reviews.deleteMany({}) for deleting review
-//mapbox use for api
+
+
+
