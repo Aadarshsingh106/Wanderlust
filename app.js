@@ -3,6 +3,11 @@ if(process.env.NODE_ENV !="production"){
 }
 const express=require("express");
 const app=express();
+// Trust the first proxy when running in production (e.g. Heroku, reverse proxies)
+// This allows Express to read x-forwarded-proto and lets secure cookies work
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 const mongoose=require("mongoose");
 //const Listing=require("./models/listing.js");
 const path=require("path");
@@ -71,18 +76,18 @@ const store=MongoStore.create({
   touchAfter:24*3600,
 });
 
-store.on("error",()=>{
-  console.log("ERROR in MONGO SESSION STORE",err);
+store.on("error",(err)=>{
+  console.log("ERROR in MONGO SESSION STORE", err);
 });
 
-
-const sessionOptions={
+sessionOptions={
   store,
   secret: process.env.SECRET,
   resave: false,
   saveUninitialized: true,
   cookie:{
-    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+    // expires must be a Date object
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
